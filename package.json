@@ -1,0 +1,27 @@
+{
+  "name": "node-express-har-capture",
+  "version": "0.0.0",
+  "description": "Express middleware for capturing HAR (HTTP ARchive)-files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/msiebuhr/node-express-har-capture.git"
+  },
+  "keywords": [
+    "Express.js",
+    "HAR",
+    "capture",
+    "middleware"
+  ],
+  "author": "Morten Siebuhr",
+  "license": "BSD",
+  "devDependencies": {
+    "chai": "~1.6.0",
+    "mocha": "~1.9.0",
+    "express": "~3.2.2",
+    "supertest": "~0.6.0"
+  }
+}
