@@ -18,6 +18,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
     var mapRequestToName = options.mapRequestToName || function (req) {
         return req.ip;
     };
+    var saveRequestBody = !!options.saveRequestBody;
     var harOutputDir = options.harOutputDir || process.cwd();
     var filterFunction = options.filter || function (req) {
         return true;
@@ -30,6 +31,38 @@ module.exports = function harCaptureMiddlewareSetup(options) {
         var startTime = Date.now(),
             outputName = mapRequestToName(req);
 
+        // Listen in on body parsing
+        // NOTE: We do not resume the stream, as it would make actual parsers
+        // miss out on the data. On the down-side, it doesn't capture a body
+        // when the body isn't used later.
+        var requestBodySize = 0,
+            requestBody = [];
+
+        req.on('data', function (chunck) {
+            requestBodySize += chunck.length;
+            if (saveRequestBody) {
+                requestBody.push(chunck);
+            }
+        });
+        req.on('end', function (chunck) {
+            if (chunck) {
+                requestBodySize += chunck.length;
+                if (saveRequestBody) {
+                    requestBody.push(chunck);
+                }
+            }
+
+            if (requestBody.length < 0) {
+                requestBody = "";
+                return;
+            }
+
+            if (Buffer.isBuffer(requestBody[0])) {
+                requestBody = Buffer.concat(requestBody).encode('base64');
+            } else {
+                requestBody = requestBody.join("");
+            }
+        });
 
         // Shadow the 'end' request
         var end = res.end;
@@ -72,7 +105,12 @@ module.exports = function harCaptureMiddlewareSetup(options) {
                             headers: [], // Filled out later
                             queryString: [], // TODO
                             cookies: [], // TODO
-                            bodySize: req.client.bytesRead // TODO
+                            bodySize: requestBodySize,
+                            content: {
+                                size: requestBodySize,
+                                text: requestBody,
+                                comment: "Captured input stream"
+                            }
                         },
                         response: {
                             status: res.statusCode,
