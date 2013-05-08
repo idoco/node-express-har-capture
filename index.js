@@ -33,16 +33,14 @@ module.exports = function harCaptureMiddlewareSetup(options) {
             // Call the real 'end'
             end.apply(res, arguments);
 
-            //console.log(Object.keys(req));
-            //console.log(Object.keys(res));
-
             // Store har-stuff...
             var data = {
                 log: {
-                    version: '0.0.0', // TODO: Get from package.json
+                    version: '1.1', // Version of HAR file-format
                     creator: {
                         name: 'node-express-har-capture',
                         version: '0.0.0' // TODO: Get from package.json
+                        // comment: ""
                     },
                     pages: [{
                         startedDateTime: new Date(startTime).toISOString(),
@@ -64,24 +62,23 @@ module.exports = function harCaptureMiddlewareSetup(options) {
                             method: req.method,
                             url: req.originalUrl,
                             httpVersion: 'HTTP/' + req.httpVersion,
-                            headersSize: 42,
-                            headers: [], // TODO
+                            headersSize: 0, // Filled out later
+                            headers: [], // Filled out later
                             queryString: [], // TODO
                             cookies: [], // TODO
-                            headerSize: -1, // TODO
                             bodySize: req.client.bytesRead // TODO
                         },
                         response: {
-                            status: 200, // TODO
+                            status: res.statusCode,
                             redirectURL: req.originalUrl,
                             httpVersion: 'HTTP/' + req.httpVersion, // TODO
-                            headersSize: 42,
+                            headersSize: -1,
                             statusText: 'OK', // TODO
-                            headers: [], // TODO
+                            headers: [],
                             cookies: [], // TODO
-                            bodySize: 42, // TODO
+                            bodySize: -1, // TODO
                             content: { // TODO
-                                size: 0,
+                                size: -1,
                                 mimeType: '',
                                 compression: -1
                             },
@@ -98,19 +95,43 @@ module.exports = function harCaptureMiddlewareSetup(options) {
                 }
             };
 
+            // REQUEST DATA
             // Fix up data-stucture with iterative data from request
+            // Headers
             Object.keys(req.headers).forEach(function (headerName) {
+                data.log.entries[0].request.headersSize += headerName.length + 2 + req.headers[headerName].length;
                 data.log.entries[0].request.headers.push({
                     name: headerName,
                     value: req.headers[headerName]
                 });
             });
-            // TODO: QueryString & Cookies
+            // Query strings
+            Object.keys(req.query).forEach(function (queryName) {
+                data.log.entries[0].request.queryString.push({
+                    name: queryName,
+                    value: req.query[queryName]
+                });
+            });
+            // TODO: Cookies
+
+            // RESPONSE DATA
+            // Headers
+            if (res._headerSent) {
+                data.log.entries[0].response.headersSize = res._header.length;
+                Object.keys(res._headers).forEach(function (headerName) {
+                    var realHeaderName = res._headerNames[headerName] || headerName;
+                    data.log.entries[0].response.headers.push({
+                        name: realHeaderName,
+                        value: res._headers[headerName]
+                    });
+                });
+            }
+
 
             // Write the data out
             fs.writeFile(
                 path.join(harOutputDir, Date.now().toString() + '-' + outputName + '.har'),
-                JSON.stringify(data)
+                JSON.stringify(data, undefined, 2)
             );
         };
 
