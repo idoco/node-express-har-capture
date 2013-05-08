@@ -16,7 +16,7 @@ var fs = require('fs'),
 module.exports = function harCaptureMiddlewareSetup(options) {
     // Extract options
     var mapRequestToName = options.mapRequestToName || function (req) {
-        return 'insert-remote-addr-here';
+        return req.ip;
     };
     var harOutputDir = options.harOutputDir || process.cwd();
 
