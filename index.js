@@ -19,11 +19,17 @@ module.exports = function harCaptureMiddlewareSetup(options) {
         return req.ip;
     };
     var harOutputDir = options.harOutputDir || process.cwd();
-
+    var filterFunction = options.filter || function (req) {
+        return true;
+    };
 
     return function harCaptureMiddleware(req, res, next) {
+        // Filter out stuff we don't want to run
+        if (!filterFunction(req)) { return next(); }
+
         var startTime = Date.now(),
             outputName = mapRequestToName(req);
+
 
         // Shadow the 'end' request
         var end = res.end;
