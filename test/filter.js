@@ -16,13 +16,22 @@ describe('Filter test', function () {
 
         app.use(har({
             harOutputDir: __dirname,
-            mapRequestToName: function (req) {
-                return req.headers.filename || 'default';
+            mapHarToName: function (har) {
+              var filenameHeader = har.log.entries[0].request.headers.find(function (header) {
+                return header.name === 'filename';
+              });
+
+              return (filenameHeader && filenameHeader.value) || 'default';
             },
-            filter: function (req) { return 'get-har' in req.headers; }
+
+            filter: function (req) { return 'get-har' in req.headers; },
+
+            flushAfterRequest: function () {
+              return true;
+            }
         }));
 
-        app.get('/', function (req, res, next) {
+        app.get('/', function (req, res) {
             return res.send(200, 'This is quite OK');
         });
     });
@@ -47,7 +56,7 @@ describe('Filter test', function () {
             .set('filename', 'should-exist')
             .set('get-har', '1')
             .expect(200)
-            .end(function (err, res) {
+            .end(function (err) {
                 assert(
                     fs.readdirSync(__dirname).some(function (filename) {
                         return filename.indexOf('should-exist') !== -1;
@@ -63,7 +72,7 @@ describe('Filter test', function () {
             .get('/')
             .set('filename', 'should-not-exist')
             .expect(200)
-            .end(function (err, res) {
+            .end(function (err) {
                 // TODO: Check emitted HAR-file
                 assert(
                     fs.readdirSync(__dirname).every(function (filename) {
