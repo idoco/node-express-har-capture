@@ -72,7 +72,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
       flush();
     }
     else {
-      lastTimer = setTimeout(flush, timeUntilFlush);
+      lastTimer = setTimeout(flush, timeUntilFlush).unref();
     }
   }
 
