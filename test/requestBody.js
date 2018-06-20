@@ -15,6 +15,7 @@ describe('Request bodies', function () {
         app = express();
 
         app.use(har({
+            maxCaptureRequests: 1,
             harOutputDir: __dirname,
             saveRequestBody: true 
         }));

@@ -15,6 +15,7 @@ describe('Simple test', function () {
         app = express();
 
         app.use(har({
+            maxCaptureRequests: 2,
             harOutputDir: __dirname
         }));
 
@@ -38,33 +39,40 @@ describe('Simple test', function () {
     });
 
     it('Sends requests', function (done) {
+      request(app)
+      .get('/')
+      .set('Custom-header', 'foo/bar')
+      .expect(200)
+      .end(function (err, res) {
         request(app)
-            .get('/')
-            .set('Custom-header', 'foo/bar')
-            .expect(200)
-            .end(function (err, res) {
-                // Wait for file to be written to disk
-                setTimeout(function () {
-                    var filename = fs.readdirSync(__dirname).filter(function (filename) {
-                        return filename.indexOf('.har') > 10;
-                    })[0];
+        .get('/')
+        .set('Custom-header', 'foo/bar')
+        .expect(200)
+        .end(function (err, res) {
+          // Wait for file to be written to disk
+          setTimeout(function () {
+            var filename = fs.readdirSync(__dirname).filter(function (filename) {
+              return filename.indexOf('.har') > 10;
+            })[0];
 
-                    // It is valid JSON
-                    var json;
-                    try {
-                        var fullFilename = path.join(__dirname, filename),
-                            data = fs.readFileSync(fullFilename);
-                        json = JSON.parse(data);
-                    } catch (e) {
-                        assert(e, 'Could not parse JSON');
-                        return done(e);
-                    }
+            // It is valid JSON
+            var json;
+            try {
+              var fullFilename = path.join(__dirname, filename),
+                data = fs.readFileSync(fullFilename);
+              json = JSON.parse(data);
+            } catch (e) {
+              assert(e, 'Could not parse JSON');
+              return done(e);
+            }
 
-                    // Simple sanity check
-                    assert.deepProperty(json, 'log.entries.0');
+            // Simple sanity check
+            assert.deepProperty(json, 'log.entries.0');
+            assert.deepProperty(json, 'log.entries.1');
 
-                    done(err);
-                }, 5);
-            });
+            done(err);
+          }, 5);
+        });
+      });
     });
 });

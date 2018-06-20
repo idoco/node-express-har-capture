@@ -15,6 +15,7 @@ describe('Filter test', function () {
         app = express();
 
         app.use(har({
+            maxCaptureRequests: 1,
             harOutputDir: __dirname,
             mapRequestToName: function (req) {
                 return req.headers.filename || 'default';
