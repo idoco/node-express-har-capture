@@ -17,8 +17,12 @@ describe('Filter test', function () {
         app.use(har({
             maxCaptureRequests: 1,
             harOutputDir: __dirname,
-            mapRequestToName: function (req) {
-                return req.headers.filename || 'default';
+            mapHarToName: function (har) {
+              var filenameHeader = har.log.entries[0].request.headers.find(function (header) {
+                return header.name === 'filename';
+              });
+
+              return (filenameHeader && filenameHeader.value) || 'default';
             },
             filter: function (req) { return 'get-har' in req.headers; }
         }));

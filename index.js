@@ -15,9 +15,7 @@ var fs = require('fs'),
 
 module.exports = function harCaptureMiddlewareSetup(options) {
   // Extract options
-  var mapRequestToName = options.mapRequestToName || function (req) {
-    return req.ip;
-  };
+  var mapHarToName = options.mapHarToName;
   var saveRequestBody = !!options.saveRequestBody;
   var harOutputDir = options.harOutputDir || process.cwd();
 
@@ -25,19 +23,64 @@ module.exports = function harCaptureMiddlewareSetup(options) {
   var maxCaptureTime = (options.maxCaptureSeconds || 600) * 1000;
   var maxCaptureRequests = options.maxCaptureRequests || 1000;
 
-  var filterFunction = options.filter || function (req) {
+  var filterFunction = options.filter || function () {
     return true;
   };
 
   var entries = [];
-  var lastCaptureTime = Date.now();
+  var lastTimer = null;
+  var lastFlushTime = Date.now();
+
+  function flush() {
+    if (entries.length > 0) {
+      var now = Date.now();
+
+      var har = {
+        log: {
+          version: '1.1', // Version of HAR file-format
+          creator: {
+            name: 'node-express-har-capture',
+            version: '0.1.0' // TODO: Get from package.json
+            // comment: ""
+          },
+          pages: [],
+          entries: entries
+        }
+      };
+
+      var customPart = mapHarToName ? '-' + mapHarToName(har) : '';
+
+      fs.writeFile(
+        path.join(harOutputDir, now + customPart + '.har'),
+        JSON.stringify(har, undefined, 2)
+      );
+
+      entries = [];
+      lastFlushTime = now;
+    }
+  }
+
+  function checkAndFlush() {
+    if (lastTimer) {
+      clearTimeout(lastTimer);
+    }
+
+    var timeSinceLastFlush = Date.now() - lastFlushTime;
+    var timeUntilFlush = maxCaptureTime - timeSinceLastFlush;
+
+    if (timeUntilFlush <= 0 || entries.length >= maxCaptureRequests) {
+      flush();
+    }
+    else {
+      lastTimer = setTimeout(flush, timeUntilFlush);
+    }
+  }
 
   return function harCaptureMiddleware(req, res, next) {
     // Filter out stuff we don't want to run
     if (!filterFunction(req)) { return next(); }
 
-    var startTime = Date.now(),
-      outputName = mapRequestToName(req);
+    var startTime = Date.now();
 
     // Listen in on body parsing
     // NOTE: We do not resume the stream, as it would make actual parsers
@@ -88,7 +131,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
           receive: -1,
           wait: deltaTime,
           comment: "Server-side processing only",
-          onLoad: -1,
+          onLoad: -1
         },
         startedDateTime: new Date(startTime).toISOString(),
         time: deltaTime,
@@ -165,29 +208,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
       }
 
       entries.push(reqEntry);
-
-      var now = Date.now();
-      if (now - lastCaptureTime >= maxCaptureTime || entries.length >= maxCaptureRequests) {
-        // Write the data out
-        fs.writeFile(
-          path.join(harOutputDir, now.toString() + '-' + outputName + '.har'),
-          JSON.stringify({
-            log: {
-              version: '1.1', // Version of HAR file-format
-              creator: {
-                name: 'node-express-har-capture',
-                version: '0.1.0' // TODO: Get from package.json
-                // comment: ""
-              },
-              pages: [],
-              entries: entries
-            }
-          }, undefined, 2)
-        );
-
-        entries = [];
-        lastCaptureTime = now;
-      }
+      checkAndFlush();
     };
 
     // Continue processing the request
