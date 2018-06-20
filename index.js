@@ -14,6 +14,8 @@ var fs = require('fs'),
   path = require('path');
 
 module.exports = function harCaptureMiddlewareSetup(options) {
+  options = options || {};
+
   // Extract options
   var mapHarToName = options.mapHarToName;
   var saveRequestBody = options.saveRequestBody;
