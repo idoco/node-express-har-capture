@@ -16,7 +16,7 @@ var fs = require('fs'),
 module.exports = function harCaptureMiddlewareSetup(options) {
   // Extract options
   var mapHarToName = options.mapHarToName;
-  var saveRequestBody = !!options.saveRequestBody;
+  var saveRequestBody = options.saveRequestBody;
   var harOutputDir = options.harOutputDir || process.cwd();
 
   // Default 10 minutes
@@ -27,12 +27,24 @@ module.exports = function harCaptureMiddlewareSetup(options) {
     return true;
   };
 
+  var flushBeforeRequest = options.flushBeforeRequest || function () {
+    return false;
+  };
+
+  var flushAfterRequest = options.flushAfterRequest || function () {
+    return false;
+  };
+
   var entries = [];
   var lastTimer = null;
   var lastFlushTime = Date.now();
 
   function flush() {
     if (entries.length > 0) {
+      if (lastTimer) {
+        clearTimeout(lastTimer);
+      }
+
       var now = Date.now();
 
       var har = {
@@ -60,23 +72,24 @@ module.exports = function harCaptureMiddlewareSetup(options) {
     }
   }
 
-  function checkAndFlush() {
-    if (lastTimer) {
-      clearTimeout(lastTimer);
-    }
-
+  function checkAndFlush(force) {
     var timeSinceLastFlush = Date.now() - lastFlushTime;
     var timeUntilFlush = maxCaptureTime - timeSinceLastFlush;
 
-    if (timeUntilFlush <= 0 || entries.length >= maxCaptureRequests) {
+    if (force || timeUntilFlush <= 0 || entries.length >= maxCaptureRequests) {
       flush();
     }
     else {
+      if (lastTimer) {
+        clearTimeout(lastTimer);
+      }
       lastTimer = setTimeout(flush, timeUntilFlush).unref();
     }
   }
 
   return function harCaptureMiddleware(req, res, next) {
+    if (flushBeforeRequest(req)) { flush() }
+
     // Filter out stuff we don't want to run
     if (!filterFunction(req)) { return next(); }
 
@@ -208,7 +221,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
       }
 
       entries.push(reqEntry);
-      checkAndFlush();
+      checkAndFlush(flushAfterRequest(req));
     };
 
     // Continue processing the request
