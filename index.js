@@ -37,6 +37,10 @@ module.exports = function harCaptureMiddlewareSetup(options) {
     return false;
   };
 
+  var getReqEncoding = options.getReqEncoding || function () {
+    return 'utf8';
+  };
+
   var entries = [];
   var lastTimer = null;
   var lastFlushTime = Date.now();
@@ -66,7 +70,12 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
       fs.writeFile(
         path.join(harOutputDir, now + customPart + '.har'),
-        JSON.stringify(har, undefined, 2)
+        JSON.stringify(har, undefined, 2),
+        function (err) {
+          if (err) {
+            console.error("Failed to write HAR file to disk.");
+          }
+        }
       );
 
       entries = [];
@@ -124,8 +133,10 @@ module.exports = function harCaptureMiddlewareSetup(options) {
       }
 
       if (Buffer.isBuffer(requestBody[0])) {
-        requestBody = Buffer.concat(requestBody).encode('base64');
-      } else {
+        var reqEncoding = getReqEncoding(req);
+        requestBody = Buffer.concat(requestBody).toString(reqEncoding);
+      }
+      else {
         requestBody = requestBody.join("");
       }
     });
