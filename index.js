@@ -99,7 +99,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
                         time: deltaTime,
                         request: {
                             method: req.method,
-                            url: req.originalUrl,
+                            url: req.protocol + '://' + req.get('host') + req.originalUrl,
                             httpVersion: 'HTTP/' + req.httpVersion,
                             headersSize: 0, // Filled out later
                             headers: [], // Filled out later
