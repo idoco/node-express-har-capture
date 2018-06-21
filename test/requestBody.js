@@ -17,7 +17,7 @@ describe('Request bodies', function () {
         app.use(har({
             maxCaptureRequests: 1,
             harOutputDir: __dirname,
-            saveRequestBody: true 
+            saveRequestBody: true
         }));
 
         app.use(express.bodyParser());
@@ -31,12 +31,12 @@ describe('Request bodies', function () {
     afterEach(function (done) {
         fs.readdir(__dirname, function (err, files) {
             files
-            .filter(function (filename) {
-                return filename.indexOf('.har') > 10;
-            })
-            .forEach(function (filename) {
-                fs.unlinkSync(path.join(__dirname, filename));
-            });
+                .filter(function (filename) {
+                    return filename.indexOf('.har') > 10;
+                })
+                .forEach(function (filename) {
+                    fs.unlinkSync(path.join(__dirname, filename));
+                });
             done(err);
         });
     });
@@ -66,13 +66,13 @@ describe('Request bodies', function () {
 
                     assert.deepProperty(
                         json,
-                        'log.entries.0.request.content.text'
+                        'log.entries.0.request.postData.text'
                     );
 
                     // Simple sanity check
                     assert.deepPropertyVal(
                         json,
-                        'log.entries[0].request.content.text',
+                        'log.entries[0].request.postData.text',
                         'some body'
                     );
 
