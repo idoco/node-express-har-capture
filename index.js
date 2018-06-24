@@ -18,7 +18,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
   // Extract options
   var mapHarToName = options.mapHarToName;
-  var saveRequestBody = options.saveRequestBody;
+  var saveBody = options.saveBody;
   var harOutputDir = options.harOutputDir || process.cwd();
 
   // Default 10 minutes
@@ -115,14 +115,14 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
     req.on('data', function (chunck) {
       requestBodySize += chunck.length;
-      if (saveRequestBody) {
+      if (saveBody) {
         requestBody.push(chunck);
       }
     });
     req.on('end', function (chunck) {
       if (chunck) {
         requestBodySize += chunck.length;
-        if (saveRequestBody) {
+        if (saveBody) {
           requestBody.push(chunck);
         }
       }
@@ -143,12 +143,18 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
     // Shadow the 'end' request
     var end = res.end;
-    res.end = function () {
+    res.end = function (data) {
       var endTime = Date.now(),
         deltaTime = endTime - startTime;
       // Call the real 'end'
       end.apply(res, arguments);
 
+      var responseBodyLength = 0;
+      var responseBody = '';
+      if(saveBody) {
+        responseBodyLength = data && data.length || 0;
+        responseBody = data && data.toString() || '';
+      }
       // Store har-stuff...
 
       var reqEntry = {
@@ -170,8 +176,9 @@ module.exports = function harCaptureMiddlewareSetup(options) {
           queryString: [], // TODO
           cookies: [], // TODO
           bodySize: requestBodySize,
-          content: {
-            size: requestBodySize,
+          postData: {
+            mimeType: req.get('Content-Type'),
+            params: [],
             text: requestBody,
             comment: "Captured input stream"
           }
@@ -184,11 +191,12 @@ module.exports = function harCaptureMiddlewareSetup(options) {
           statusText: 'OK', // TODO
           headers: [],
           cookies: [], // TODO
-          bodySize: -1, // TODO
-          content: { // TODO
-            size: -1,
-            mimeType: '',
-            compression: -1
+          bodySize: responseBodyLength,
+          content: {
+            size: responseBodyLength,
+            params: [],
+            mimeType: res.get('Content-Type'),
+            text: responseBody
           },
           timings: {
             send: 0,
