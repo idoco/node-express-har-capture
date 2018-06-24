@@ -8,7 +8,7 @@ var assert = require('chai').assert,
     path = require('path'),
     request = require('supertest');
 
-describe('Request bodies', function () {
+describe('Request and response bodies', function () {
     var app;
 
     before(function () {
@@ -17,7 +17,7 @@ describe('Request bodies', function () {
         app.use(har({
             maxCaptureRequests: 1,
             harOutputDir: __dirname,
-            saveRequestBody: true
+            saveBody: true
         }));
 
         app.use(express.bodyParser());
@@ -74,6 +74,12 @@ describe('Request bodies', function () {
                         json,
                         'log.entries[0].request.postData.text',
                         'some body'
+                    );
+
+                    assert.deepPropertyVal(
+                        json,
+                        'log.entries[0].response.content.text',
+                        'This is quite OK'
                     );
 
                     done(err);

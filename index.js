@@ -18,7 +18,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
   // Extract options
   var mapHarToName = options.mapHarToName;
-  var saveRequestBody = options.saveRequestBody;
+  var saveBody = options.saveBody;
   var harOutputDir = options.harOutputDir || process.cwd();
 
   // Default 10 minutes
@@ -115,14 +115,14 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
     req.on('data', function (chunck) {
       requestBodySize += chunck.length;
-      if (saveRequestBody) {
+      if (saveBody) {
         requestBody.push(chunck);
       }
     });
     req.on('end', function (chunck) {
       if (chunck) {
         requestBodySize += chunck.length;
-        if (saveRequestBody) {
+        if (saveBody) {
           requestBody.push(chunck);
         }
       }
@@ -151,7 +151,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
 
       var responseBodyLength = 0;
       var responseBody = '';
-      if(saveRequestBody) {
+      if(saveBody) {
         responseBodyLength = data && data.length || 0;
         responseBody = data && data.toString() || '';
       }
