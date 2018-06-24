@@ -1,6 +1,6 @@
 {
   "name": "express-har-capture",
-  "version": "1.0.4-beta",
+  "version": "1.0.5-beta",
   "description": "Express middleware for capturing HAR (HTTP ARchive)-files",
   "main": "index.js",
   "scripts": {

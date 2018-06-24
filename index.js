@@ -58,7 +58,7 @@ module.exports = function harCaptureMiddlewareSetup(options) {
           version: '1.1', // Version of HAR file-format
           creator: {
             name: 'node-express-har-capture',
-            version: '0.1.0' // TODO: Get from package.json
+            version: '1.0.0' // TODO: Get from package.json
             // comment: ""
           },
           pages: [],
